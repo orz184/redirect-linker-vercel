@@ -1,68 +1,181 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>直鏈取得工具（免代理）</title>
+  <title>直鏈取得（免代理・按鈕版）</title>
   <style>
-    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;line-height:1.6;padding:24px;max-width:720px;margin:auto}
-    h1{font-size:1.4rem;margin:0 0 12px}
-    label{display:block;margin:12px 0 6px}
+    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;line-height:1.6;padding:24px;max-width:760px;margin:auto}
+    h1{font-size:1.5rem;margin:0 0 12px}
+    .row{margin:12px 0}
     input[type=text]{width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px}
-    button, a.btn{display:inline-block;margin-top:12px;padding:10px 14px;border-radius:8px;border:0;background:#1a73e8;color:#fff;text-decoration:none;font-size:16px;cursor:pointer}
-    .note{font-size:0.95rem;background:#f7f7fb;border:1px solid #eee;border-radius:8px;padding:12px;margin-top:16px}
-    ol{padding-left:20px}
+    button{display:inline-block;margin:6px 8px 0 0;padding:10px 14px;border-radius:8px;border:0;background:#1a73e8;color:#fff;font-size:16px;cursor:pointer}
+    button.secondary{background:#6c757d}
     code{background:#f0f0f0;padding:2px 6px;border-radius:6px}
     .muted{color:#666}
+    .note{font-size:.95rem;background:#f7f7fb;border:1px solid #eee;border-radius:8px;padding:12px;margin-top:16px}
+    .card{border:1px solid #eee;border-radius:10px;padding:12px;margin-top:12px}
+    .url{word-break:break-all}
+    textarea{width:100%;min-height:120px;padding:10px;border:1px solid #ccc;border-radius:8px}
+    .hidden{display:none}
   </style>
 </head>
 <body>
-  <h1>直鏈取得工具（免代理）</h1>
-  <p class="muted">步驟：輸入 token → 開啟原站 API 分頁 → 在該分頁點書籤小工具 → 直鏈自動複製 → 貼到 jDownloader / IDM。</p>
+  <h1>直鏈取得（免代理・按鈕版）</h1>
+  <p class="muted">流程：帶 <code>?token=...</code> 進來 → 按「開啟原站 API 分頁」→ 在那個分頁 <strong>Ctrl+A、Ctrl+C</strong> → 回到本頁按「從剪貼簿解析」。</p>
 
-  <label for="token">Token</label>
-  <input id="token" type="text" placeholder="貼上你的 token…" />
-
-  <div>
-    <button id="openApi">在新分頁開啟原站 API</button>
+  <div id="hasToken" class="row hidden">
+    <div class="card">
+      <div>偵測到 token：<code id="tokenShow"></code></div>
+      <div class="row">
+        <button id="openApiBtn">開啟原站 API 分頁</button>
+        <button id="parseClipboardBtn" class="secondary">從剪貼簿解析</button>
+      </div>
+      <div class="muted">將開啟：<code id="targetUrl"></code></div>
+    </div>
   </div>
 
-  <div class="note">
-    <strong>說明</strong>
-    <ol>
-      <li>按「在新分頁開啟原站 API」後，瀏覽器會打開 <code>https://lbxdl.22web.org/api/?token=你的token</code>。</li>
-      <li>該頁會自動完成驗證並跳到 <code>&i=1</code>，回傳 JSON（裡面有 <code>files[0].url</code>）。</li>
-      <li>請在那個分頁執行下面的「書籤小工具」，它會自動把直鏈複製到剪貼簿。</li>
-    </ol>
+  <div id="noToken" class="row">
+    <div class="card">
+      <div class="row">請輸入 token：</div>
+      <input id="tokenInput" type="text" placeholder="貼上你的 token…" />
+      <div class="row">
+        <button id="goBtn">前往（帶 ?token=）</button>
+      </div>
+    </div>
   </div>
 
-  <h2>書籤小工具（Bookmarklet）</h2>
-  <p>把下列任一段整段複製，新增一個瀏覽器書籤，將「網址（URL）」貼上即可。</p>
-
-  <p><strong>① 複製第一個檔案直鏈</strong></p>
-  <pre><code>javascript:(async()=>{try{const r=await fetch(location.href,{credentials:'include'});const t=await r.text();const j=JSON.parse(t);let u=null;if(Array.isArray(j.files)&&j.files.length&&j.files[0].url)u=j.files[0].url;else if(j.url)u=j.url;if(u){await navigator.clipboard.writeText(u);alert('已複製直鏈到剪貼簿:\\n'+u);}else{alert('找不到直鏈，請確認此頁為 &i=1 的 JSON');}}catch(e){alert('解析失敗：'+e);}})();</code></pre>
-
-  <p><strong>② 複製所有檔案直鏈（多個檔案時）</strong></p>
-  <pre><code>javascript:(async()=>{try{const r=await fetch(location.href,{credentials:'include'});const t=await r.text();const j=JSON.parse(t);let urls=[];if(Array.isArray(j.files))urls=j.files.map(f=>f&amp;&amp;f.url).filter(Boolean);if(j.url)urls.push(j.url);if(urls.length){await navigator.clipboard.writeText(urls.join('\n'));alert('已複製 '+urls.length+' 條直鏈到剪貼簿');}else{alert('找不到直鏈，請確認此頁為 &i=1 的 JSON');}}catch(e){alert('解析失敗：'+e);}})();</code></pre>
-
-  <div class="note">
-    <strong>使用小撇步</strong>
+  <div class="row note">
+    <strong>小提醒</strong>
     <ul>
-      <li>若瀏覽器阻擋彈出視窗，請允許本站開啟新分頁。</li>
-      <li>bookmarklet 要在 <code>https://lbxdl.22web.org/api/?token=...&i=1</code> 那個分頁上執行（位於該分頁的書籤列點它）。</li>
-      <li>複製到剪貼簿後，直接貼進 jDownloader「新增連結」或 IDM「新增網址」。</li>
-      <li>若 JSON 結構有變（不是 <code>files[0].url</code>），再跟我說，我幫你改。</li>
+      <li>原站會先跑驗證再跳到 <code>&i=1</code>，頁面內容為 JSON。</li>
+      <li>瀏覽器可能會跳出「允許讀取剪貼簿」詢問，請點允許（僅此一次）。</li>
+      <li>如果「讀取剪貼簿」被拒，改用下方「手動貼上 JSON」解析。</li>
     </ul>
   </div>
 
+  <div class="row card">
+    <h3>解析結果</h3>
+    <div id="results"></div>
+  </div>
+
+  <div class="row card">
+    <h3>手動貼上 JSON（備用）</h3>
+    <p class="muted">若剪貼簿讀取被瀏覽器擋住，請把 <code>&i=1</code> 分頁的內容整段貼在此。</p>
+    <textarea id="jsonInput" placeholder='{"status":"success","files":[{"url":"https://..."}]}'></textarea>
+    <div class="row">
+      <button id="parseTextareaBtn" class="secondary">解析貼上的 JSON</button>
+    </div>
+  </div>
+
   <script>
-    const input = document.getElementById('token');
-    document.getElementById('openApi').addEventListener('click', () => {
-      const token = (input.value || '').trim();
-      if (!token) { alert('請先輸入 token'); return; }
-      const url = `https://lbxdl.22web.org/api/?token=${encodeURIComponent(token)}`;
-      window.open(url, '_blank', 'noopener,noreferrer');
-    });
+    const qs = new URLSearchParams(location.search);
+    const token = (qs.get('token') || '').trim();
+    const apiBase = 'https://lbxdl.22web.org/api/';
+
+    const $ = (id)=>document.getElementById(id);
+    const resultsEl = $('results');
+
+    function openApi() {
+      const url = apiBase + '?token=' + encodeURIComponent(token);
+      const w = window.open(url, '_blank', 'noopener');
+      if (!w) alert('瀏覽器阻擋了彈出視窗，請允許或再按一次。');
+    }
+
+    function copy(text) {
+      return navigator.clipboard.writeText(text);
+    }
+
+    function extractUrlsFromJson(obj) {
+      const urls = [];
+      (function dig(o){
+        if (!o) return;
+        if (Array.isArray(o)) { for (const it of o) dig(it); return; }
+        if (typeof o === 'object') {
+          if (typeof o.url === 'string') urls.push(o.url);
+          const keys = ['download_url','link','downloadUrl','result'];
+          for (const k of keys) if (typeof o[k] === 'string') urls.push(o[k]);
+          if (Array.isArray(o.files)) for (const f of o.files) dig(f);
+          if (o.data) dig(o.data);
+        }
+      })(obj);
+      // 去重
+      return Array.from(new Set(urls));
+    }
+
+    function extractFromText(text) {
+      // 先試 JSON
+      try {
+        const j = JSON.parse(text);
+        const urls = extractUrlsFromJson(j);
+        if (urls.length) return urls;
+      } catch(_) {}
+      // 再用 regex 撈所有 http(s) 連結（保底）
+      const m = text.match(/https?:\/\/[^\s"'<>]+/g) || [];
+      return Array.from(new Set(m));
+    }
+
+    function showResults(urls) {
+      if (!urls.length) {
+        resultsEl.innerHTML = '<p class="muted">尚未取得任何連結。</p>';
+        return;
+      }
+      resultsEl.innerHTML = urls.map((u,i)=>`
+        <div class="row">
+          <div class="url"><strong>[${i+1}]</strong> ${u}</div>
+          <button data-url="${u}">複製這條</button>
+        </div>
+      `).join('');
+      // 綁定 copy 按鈕
+      resultsEl.querySelectorAll('button[data-url]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const u = btn.getAttribute('data-url');
+          try { await copy(u); alert('已複製：\n'+u); }
+          catch { alert('無法自動複製，請手動選取連結複製。'); }
+        });
+      });
+    }
+
+    async function parseFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text) { alert('剪貼簿是空的，請先在原站分頁 Ctrl+A → Ctrl+C'); return; }
+        const urls = extractFromText(text);
+        if (!urls.length) { alert('沒解析到連結，請確認複製的是 &i=1 分頁的 JSON 內容。'); return; }
+        showResults(urls);
+        // 若只取第一個最常用
+        try { await copy(urls[0]); alert('已複製第一條直鏈到剪貼簿。'); } catch {}
+      } catch (e) {
+        alert('讀取剪貼簿被拒絕或失敗。\n可改用下方「手動貼上 JSON」。\n\n錯誤：'+e);
+      }
+    }
+
+    function parseFromTextarea() {
+      const text = $('jsonInput').value.trim();
+      if (!text) { alert('請先貼上 JSON'); return; }
+      const urls = extractFromText(text);
+      if (!urls.length) { alert('解析不到連結，請確認貼的是 &i=1 的 JSON。'); return; }
+      showResults(urls);
+    }
+
+    // 初始化 UI
+    if (token) {
+      $('noToken').classList.add('hidden');
+      $('hasToken').classList.remove('hidden');
+      $('tokenShow').textContent = token;
+      $('targetUrl').textContent = apiBase + '?token=' + token;
+      $('openApiBtn').onclick = openApi;
+      $('parseClipboardBtn').onclick = parseFromClipboard;
+      // 自動嘗試開新分頁（若被擋，手動按按鈕）
+      setTimeout(openApi, 400);
+    } else {
+      $('goBtn').onclick = ()=>{
+        const t = $('tokenInput').value.trim();
+        if (!t) return alert('請先輸入 token');
+        location.href='/?token='+encodeURIComponent(t);
+      };
+    }
+    $('parseTextareaBtn').onclick = parseFromTextarea;
   </script>
 </body>
 </html>
