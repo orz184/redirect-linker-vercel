@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>直鏈取得工具（免代理）</title>
+  <style>
+    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;line-height:1.6;padding:24px;max-width:720px;margin:auto}
+    h1{font-size:1.4rem;margin:0 0 12px}
+    label{display:block;margin:12px 0 6px}
+    input[type=text]{width:100%;padding:10px;font-size:16px;border:1px solid #ccc;border-radius:8px}
+    button, a.btn{display:inline-block;margin-top:12px;padding:10px 14px;border-radius:8px;border:0;background:#1a73e8;color:#fff;text-decoration:none;font-size:16px;cursor:pointer}
+    .note{font-size:0.95rem;background:#f7f7fb;border:1px solid #eee;border-radius:8px;padding:12px;margin-top:16px}
+    ol{padding-left:20px}
+    code{background:#f0f0f0;padding:2px 6px;border-radius:6px}
+    .muted{color:#666}
+  </style>
+</head>
+<body>
+  <h1>直鏈取得工具（免代理）</h1>
+  <p class="muted">步驟：輸入 token → 開啟原站 API 分頁 → 在該分頁點書籤小工具 → 直鏈自動複製 → 貼到 jDownloader / IDM。</p>
+
+  <label for="token">Token</label>
+  <input id="token" type="text" placeholder="貼上你的 token…" />
+
+  <div>
+    <button id="openApi">在新分頁開啟原站 API</button>
+  </div>
+
+  <div class="note">
+    <strong>說明</strong>
+    <ol>
+      <li>按「在新分頁開啟原站 API」後，瀏覽器會打開 <code>https://lbxdl.22web.org/api/?token=你的token</code>。</li>
+      <li>該頁會自動完成驗證並跳到 <code>&i=1</code>，回傳 JSON（裡面有 <code>files[0].url</code>）。</li>
+      <li>請在那個分頁執行下面的「書籤小工具」，它會自動把直鏈複製到剪貼簿。</li>
+    </ol>
+  </div>
+
+  <h2>書籤小工具（Bookmarklet）</h2>
+  <p>把下列任一段整段複製，新增一個瀏覽器書籤，將「網址（URL）」貼上即可。</p>
+
+  <p><strong>① 複製第一個檔案直鏈</strong></p>
+  <pre><code>javascript:(async()=>{try{const r=await fetch(location.href,{credentials:'include'});const t=await r.text();const j=JSON.parse(t);let u=null;if(Array.isArray(j.files)&&j.files.length&&j.files[0].url)u=j.files[0].url;else if(j.url)u=j.url;if(u){await navigator.clipboard.writeText(u);alert('已複製直鏈到剪貼簿:\\n'+u);}else{alert('找不到直鏈，請確認此頁為 &i=1 的 JSON');}}catch(e){alert('解析失敗：'+e);}})();</code></pre>
+
+  <p><strong>② 複製所有檔案直鏈（多個檔案時）</strong></p>
+  <pre><code>javascript:(async()=>{try{const r=await fetch(location.href,{credentials:'include'});const t=await r.text();const j=JSON.parse(t);let urls=[];if(Array.isArray(j.files))urls=j.files.map(f=>f&amp;&amp;f.url).filter(Boolean);if(j.url)urls.push(j.url);if(urls.length){await navigator.clipboard.writeText(urls.join('\n'));alert('已複製 '+urls.length+' 條直鏈到剪貼簿');}else{alert('找不到直鏈，請確認此頁為 &i=1 的 JSON');}}catch(e){alert('解析失敗：'+e);}})();</code></pre>
+
+  <div class="note">
+    <strong>使用小撇步</strong>
+    <ul>
+      <li>若瀏覽器阻擋彈出視窗，請允許本站開啟新分頁。</li>
+      <li>bookmarklet 要在 <code>https://lbxdl.22web.org/api/?token=...&i=1</code> 那個分頁上執行（位於該分頁的書籤列點它）。</li>
+      <li>複製到剪貼簿後，直接貼進 jDownloader「新增連結」或 IDM「新增網址」。</li>
+      <li>若 JSON 結構有變（不是 <code>files[0].url</code>），再跟我說，我幫你改。</li>
+    </ul>
+  </div>
+
+  <script>
+    const input = document.getElementById('token');
+    document.getElementById('openApi').addEventListener('click', () => {
+      const token = (input.value || '').trim();
+      if (!token) { alert('請先輸入 token'); return; }
+      const url = `https://lbxdl.22web.org/api/?token=${encodeURIComponent(token)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
+  </script>
+</body>
+</html>
