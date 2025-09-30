@@ -6,13 +6,47 @@ const COMMON_HEADERS = {
   'Accept': '*/*'
 };
 
+// 取代兩個檔案裡的 urlFromJson 函式
 function urlFromJson(obj) {
-  if (!obj || typeof obj !== 'object') return null;
-  const cands = ['download_url', 'url', 'link', 'downloadUrl', 'result'];
-  for (const k of cands) if (typeof obj[k] === 'string') return obj[k];
-  if (obj.data && typeof obj.data === 'object') return urlFromJson(obj.data);
+  if (!obj) return null;
+
+  // 如果是陣列，逐一嘗試
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const u = urlFromJson(item);
+      if (u) return u;
+    }
+    return null;
+  }
+
+  // 如果是物件
+  if (typeof obj === 'object') {
+    // 1) 最常見字段
+    if (typeof obj.url === 'string') return obj.url;
+    const candidates = ['download_url', 'link', 'downloadUrl', 'result'];
+    for (const k of candidates) {
+      if (typeof obj[k] === 'string') return obj[k];
+    }
+
+    // 2) 你的實際格式：files[0].url
+    if (Array.isArray(obj.files)) {
+      for (const f of obj.files) {
+        if (typeof f?.url === 'string') return f.url;
+        const u = urlFromJson(f);
+        if (u) return u;
+      }
+    }
+
+    // 3) 有些 API 會包在 data 裡
+    if (obj.data) {
+      const u = urlFromJson(obj.data);
+      if (u) return u;
+    }
+  }
+
   return null;
 }
+
 function urlFromText(t) {
   const m = t.match(/https?:\/\/[^\s"'<>]+/i);
   return m ? m[0] : null;
