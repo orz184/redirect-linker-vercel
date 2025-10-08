@@ -3,43 +3,63 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>分享連結 → jDownloader（免代理／不碰 lbxdl）</title>
+  <title>分享連結 → jDownloader（免代理／不碰 API）</title>
   <style>
-    body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;line-height:1.6;margin:0;background:#0f1320;color:#e9eef6}
-    .wrap{max-width:860px;margin:0 auto;padding:28px 18px}
+    :root{--bg:#0f1320;--card:#121833;--muted:#9aa4b2;--fg:#e9eef6;--acc:#4a8cff}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#0b1020,#101737);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC",sans-serif}
+    .wrap{max-width:880px;margin:0 auto;padding:28px 18px}
     h1{font-size:20px;margin:0 0 10px}
-    p.muted{color:#9aa4b2;margin:0 0 16px}
-    .card{background:#121833;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin:16px 0}
-    textarea{width:100%;min-height:160px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0f1733;color:#e9eef6}
+    p.muted{color:var(--muted);margin:0 0 16px}
+    .card{background:var(--card);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin:16px 0}
+    textarea{width:100%;min-height:170px;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0f1733;color:var(--fg)}
+    input[type=text]{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0f1733;color:var(--fg)}
     .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-    button{appearance:none;border:0;border-radius:10px;padding:10px 14px;background:#4a8cff;color:#fff;cursor:pointer;font-weight:600}
+    button{appearance:none;border:0;border-radius:10px;padding:10px 14px;background:var(--acc);color:#fff;cursor:pointer;font-weight:600}
     button.secondary{background:#2d3b66}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,.18)}
     .small{font-size:13px}
     code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:6px}
-    .ok{color:#88f6b1}.warn{color:#ffb37a}.err{color:#ffa0a0}
+    .ok{color:#88f6b1}.warn{color:#ffb37a}.err{color:#ff9c9c}
+    .list .item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border-bottom:1px dashed rgba(255,255,255,.12);padding:8px 0}
+    .url{word-break:break-all}
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>分享連結 → jDownloader</h1>
-    <p class="muted">把分享連結直接送進你電腦上的 jDownloader LinkGrabber。<br>本頁不會連到 lbxdl，也不會幫你解析任何 JSON。</p>
+    <p class="muted">把 <code>https://cfzy.us/f/…</code>、<code>https://lbx.cx/f/…</code>、<code>https://lbx.ac/f/…</code> 等分享連結，直接送到你電腦上的 jDownloader LinkGrabber。<br>本頁<strong>不會</strong>連到 lbxdl，也<strong>不會</strong>解析任何 JSON。</p>
 
     <div class="card">
-      <p class="small">貼上分享連結（每行一條；原始分享頁或 <code>.../api/?token=...</code> 都可）：</p>
-      <textarea id="links" placeholder="例如：&#10;https://lbxdl.22web.org/?s=XXXX&#10;https://lbxdl.22web.org/api/?token=YYYY"></textarea>
+      <p class="small">貼上分享連結（每行一條）：</p>
+      <textarea id="links" placeholder="例如：&#10;https://cfzy.us/f/QV2ltMb&#10;https://lbx.cx/f/t6nNnCB&#10;https://lbx.ac/f/t6nNnCB"></textarea>
       <div class="row">
         <button id="sendJD">送到 jDownloader</button>
-        <button id="clear" class="secondary">清空</button>
+        <button id="copyList" class="secondary">複製全部（備 IDM）</button>
+        <button id="downloadTxt" class="secondary">下載 .txt 清單</button>
+        <button id="clear" class="ghost">清空</button>
       </div>
       <p id="msg" class="small"></p>
     </div>
 
     <div class="card">
+      <b>預覽與清理</b>
+      <div class="row">
+        <input id="filter" type="text" placeholder="快速過濾（輸入關鍵字）" />
+        <button id="applyFilter" class="secondary">套用</button>
+        <button id="resetFilter" class="ghost">重置</button>
+      </div>
+      <div id="list" class="list"></div>
+      <p class="small muted" id="count"></p>
+    </div>
+
+    <div class="card">
       <b>使用說明</b>
       <ul class="small">
-        <li>這會向 <code>http://127.0.0.1:9666</code>（你的電腦）送資料；請先啟動 jDownloader。</li>
-        <li>送出後，請到 jDownloader 的 <em>LinkGrabber</em> 分頁查看是否接收到連結，再開始下載。</li>
-        <li>若你的瀏覽器是 HTTPS 網站頁面，向 <code>http://127.0.0.1</code> 發送表單通常是允許的（屬於可信本機）；若仍被阻擋，請改用其他瀏覽器或關閉阻擋設定。</li>
+        <li>請先啟動 <b>jDownloader</b>，它會在 <code>http://127.0.0.1:9666</code> 接收連結（Click’n’Load / FlashGot）。</li>
+        <li>按「送到 jDownloader」後，切到 jDownloader 的 <em>LinkGrabber</em> 分頁查看，確認解析成功再開始下載。</li>
+        <li>本頁屬於 HTTPS，送表單到 <code>http://127.0.0.1</code> 在大部分瀏覽器是允許的；若被阻擋，請改用其他瀏覽器或暫時允許本機連線。</li>
+        <li>若想給 IDM：請先讓 JD 解析出直鏈，再由 JD 複製直鏈給 IDM；或點「複製全部 / 下載 .txt」只是原始分享連結，IDM 本身無法解析分享頁。</li>
       </ul>
     </div>
   </div>
@@ -50,7 +70,7 @@
     <input type="hidden" name="urls" />
     <input type="hidden" name="package" value="Imported Links" />
     <input type="hidden" name="autostart" value="0" />
-    <input type="hidden" name="source" value="your-web" />
+    <input type="hidden" name="source" value="share-to-jd" />
   </form>
   <form id="formFlashGot" action="http://127.0.0.1:9666/flashgot" method="post" target="cnl_iframe" style="display:none">
     <input type="hidden" name="urls" />
@@ -61,34 +81,42 @@
 
   <script>
     const $ = (id)=>document.getElementById(id);
-    const msg = $('msg');
+    const msg = $('msg'), list = $('list'), count = $('count'), filter = $('filter');
 
-    function normalizeInput(text){
-      return text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    // 從 URL 參數帶入（支援 ?u= / ?url= / ?links=，以換行分隔或逗號分隔）
+    (function initFromQuery(){
+      const q = new URLSearchParams(location.search);
+      const raw = q.get('u') || q.get('url') || q.get('links') || '';
+      if (raw) $('links').value = decodeURIComponent(raw).replace(/,/g, '\n');
+      renderPreview();
+    })();
+
+    function normalize(lines){
+      const allowHosts = ['cfzy.us','lbx.cx','lbx.ac'];
+      const out = [];
+      lines.forEach(s=>{
+        if (!s) return;
+        try {
+          const u = new URL(s);
+          // 只接受指定網域 & 路徑大致為 /f/<id>
+          const hostOk = allowHosts.some(h => u.hostname.toLowerCase()===h);
+          const pathOk = /^\/f\/[A-Za-z0-9_-]+/.test(u.pathname);
+          if (hostOk && pathOk) out.push(u.toString());
+        } catch { /* 忽略非 URL */ }
+      });
+      // 去重
+      return Array.from(new Set(out));
     }
 
-    function submitToJD(endpointId, urls){
-      const form = $(endpointId);
-      form.querySelector('input[name="urls"]').value = urls.join('\n');
-      try { form.submit(); return true; } catch { return false; }
+    function getInputList(){
+      const raw = $('links').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      return normalize(raw);
     }
 
-    $('sendJD').onclick = () => {
-      const links = normalizeInput($('links').value);
-      if (!links.length) { msg.innerHTML = '<span class="warn">請先貼上至少一條分享連結。</span>'; return; }
-
-      // 同時嘗試兩個相容端點
-      const ok1 = submitToJD('formAdd', links);
-      const ok2 = submitToJD('formFlashGot', links);
-
-      if (ok1 || ok2) {
-        msg.innerHTML = '<span class="ok">已送出到 jDownloader（LinkGrabber）。請切到 jDownloader 查看。</span>';
-      } else {
-        msg.innerHTML = '<span class="err">送出失敗。請確認 jDownloader 已啟動，且允許 Click’n’Load / FlashGot。</span>';
-      }
-    };
-
-    $('clear').onclick = () => { $('links').value = ''; msg.textContent = ''; };
-  </script>
-</body>
-</html>
+    function renderPreview(){
+      const urls = getInputList()
+        .filter(u => !filter.value || u.toLowerCase().includes(filter.value.toLowerCase()));
+      list.innerHTML = urls.map((u,i)=>`
+        <div class="item">
+          <div class="url">[${i+1}] <a href="${u}" target="_blank" rel="noopener">${u}</a></div>
+          <div><button class
